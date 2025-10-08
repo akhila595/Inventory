@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
+import axios from "axios";
 
 interface Product {
   id: number;
-  productName: string | null;
+  productName: string;
   designCode: string;
   pattern: string;
   brandName: string | null;
@@ -12,36 +13,48 @@ interface Product {
 
 export default function ProductsTable() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("http://localhost:8080/api/products")
-      .then(res => res.json())
-      .then(data => setProducts(data));
+    axios
+      .get("http://localhost:8080/api/products")
+      .then((res) => {
+        setProducts(res.data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error(err);
+        setLoading(false);
+      });
   }, []);
 
+  if (loading) return <p>Loading Products Table...</p>;
+
   return (
-    <div className="p-4 shadow rounded-xl bg-white">
-      <h2 className="text-xl font-semibold mb-4">Products</h2>
-      <table className="w-full border-collapse">
+    <div className="p-4 bg-white rounded-2xl shadow-lg overflow-x-auto">
+      <h2 className="text-xl font-bold mb-4">📦 Products Table</h2>
+      <table className="w-full table-auto border-collapse text-center">
         <thead>
-          <tr className="bg-gray-100">
-            <th className="p-2 text-left">Design Code</th>
-            <th className="p-2 text-left">Product</th>
-            <th className="p-2 text-left">Pattern</th>
-            <th className="p-2 text-left">Brand</th>
-            <th className="p-2 text-left">Cloth Type</th>
-            <th className="p-2 text-left">Category</th>
+          <tr className="bg-gray-200">
+            <th className="border px-2 py-1">ID</th>
+            <th className="border px-2 py-1">Product Name</th>
+            <th className="border px-2 py-1">Design Code</th>
+            <th className="border px-2 py-1">Pattern</th>
+            <th className="border px-2 py-1">Brand</th>
+            <th className="border px-2 py-1">Cloth Type</th>
+            <th className="border px-2 py-1">Category</th>
           </tr>
         </thead>
         <tbody>
-          {products.map(p => (
-            <tr key={p.id} className="border-t">
-              <td className="p-2">{p.designCode}</td>
-              <td className="p-2">{p.productName || "-"}</td>
-              <td className="p-2">{p.pattern}</td>
-              <td className="p-2">{p.brandName || "-"}</td>
-              <td className="p-2">{p.clothTypeName || "-"}</td>
-              <td className="p-2">{p.categoryName}</td>
+          {products.map((item) => (
+            <tr key={item.id}>
+              <td className="border px-2 py-1">{item.id}</td>
+              <td className="border px-2 py-1">{item.productName}</td>
+              <td className="border px-2 py-1">{item.designCode}</td>
+              <td className="border px-2 py-1">{item.pattern}</td>
+              <td className="border px-2 py-1">{item.brandName || "-"}</td>
+              <td className="border px-2 py-1">{item.clothTypeName || "-"}</td>
+              <td className="border px-2 py-1">{item.categoryName}</td>
             </tr>
           ))}
         </tbody>

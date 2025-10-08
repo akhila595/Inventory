@@ -20,29 +20,62 @@ interface DailyReportData {
 }
 
 const DailyReport: React.FC = () => {
+  const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+
+  const [selectedDate, setSelectedDate] = useState<string>(today);
   const [reportData, setReportData] = useState<DailyReportData | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    fetch("http://localhost:8080/api/reports/daily?date=2025-08-16")
+    setLoading(true);
+    fetch(`http://localhost:8080/api/reports/daily?date=${selectedDate}`)
       .then((res) => res.json())
-      .then((data) => setReportData(data))
-      .catch((err) => console.error("Error fetching daily report:", err));
-  }, []);
+      .then((data) => {
+        setReportData(data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Error fetching daily report:", err);
+        setLoading(false);
+      });
+  }, [selectedDate]);
 
-  if (!reportData) {
-    return <div>Loading...</div>;
-  }
+  if (loading) return <div>Loading...</div>;
+  if (!reportData) return <div>No data available.</div>;
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-md mt-10">
-      <h2 className="text-xl font-bold mb-4">🗓 Daily Sales Report ({reportData.date})</h2>
+      {/* Date Picker */}
+      <div className="mb-4">
+        <label className="font-medium mr-2">📅 Select Date:</label>
+        <input
+          type="date"
+          value={selectedDate}
+          onChange={(e) => setSelectedDate(e.target.value)}
+          className="border rounded px-2 py-1"
+          max={today}
+        />
+      </div>
+
+      {/* Heading */}
+      <h2 className="text-xl font-bold mb-4">
+        🗓 Daily Sales Report ({reportData.date})
+      </h2>
 
       {/* Summary */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-blue-100 p-4 rounded">Total Sales: ₹{reportData.totalSales.toFixed(2)}</div>
-        <div className="bg-green-100 p-4 rounded">Total Profit: ₹{reportData.totalProfit.toFixed(2)}</div>
-        <div className="bg-red-100 p-4 rounded">Total Loss: ₹{reportData.totalLoss.toFixed(2)}</div>
-        <div className="bg-yellow-100 p-4 rounded">Qty Sold: {reportData.totalQuantitySold}</div>
+        <div className="bg-blue-100 p-4 rounded">
+          Total Sales: ₹{reportData.totalSales.toFixed(2)}
+        </div>
+        <div className="bg-green-100 p-4 rounded">
+          Total Profit: ₹{reportData.totalProfit.toFixed(2)}
+        </div>
+        <div className="bg-red-100 p-4 rounded">
+          Total Loss: ₹{reportData.totalLoss.toFixed(2)}
+        </div>
+        <div className="bg-yellow-100 p-4 rounded">
+          Qty Sold: {reportData.totalQuantitySold}
+        </div>
       </div>
 
       {/* Table */}

@@ -1,47 +1,38 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
+import axios from "axios";
 
-interface CategoryReportItem {
+interface Category {
+  categoryId: number;
   categoryName: string;
-  totalSales: number;
-  totalCost: number;
-  profit: number;
-  loss: number;
 }
 
 export default function CategoryReport() {
-  const [categories, setCategories] = useState<CategoryReportItem[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("http://localhost:8080/api/reports/category?startDate=2025-08-01&endDate=2025-08-31")
-      .then(res => res.json())
-      .then(data => setCategories(data));
+    axios
+      .get("http://localhost:8080/api/categories")
+      .then((res) => {
+        setCategories(res.data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error(err);
+        setLoading(false);
+      });
   }, []);
 
+  if (loading) return <p>Loading Category Report...</p>;
+
   return (
-    <div className="p-4 shadow rounded-xl bg-white">
-      <h2 className="text-xl font-semibold mb-4">Category Report</h2>
-      <table className="w-full border-collapse">
-        <thead>
-          <tr className="bg-gray-100">
-            <th className="p-2 text-left">Category</th>
-            <th className="p-2 text-right">Sales</th>
-            <th className="p-2 text-right">Cost</th>
-            <th className="p-2 text-right">Profit</th>
-            <th className="p-2 text-right">Loss</th>
-          </tr>
-        </thead>
-        <tbody>
-          {categories.map((c, i) => (
-            <tr key={i} className="border-t">
-              <td className="p-2">{c.categoryName}</td>
-              <td className="p-2 text-right">{c.totalSales.toFixed(2)}</td>
-              <td className="p-2 text-right">{c.totalCost.toFixed(2)}</td>
-              <td className="p-2 text-right text-green-600">{c.profit.toFixed(2)}</td>
-              <td className="p-2 text-right text-red-600">{c.loss.toFixed(2)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="p-4 bg-white rounded-2xl shadow-lg">
+      <h2 className="text-xl font-bold mb-4">🏷️ Category Report</h2>
+      <ul className="list-disc pl-6">
+        {categories.map((cat) => (
+          <li key={cat.categoryId}>{cat.categoryName}</li>
+        ))}
+      </ul>
     </div>
   );
 }

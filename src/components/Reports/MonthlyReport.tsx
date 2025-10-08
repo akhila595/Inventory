@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
+import axios from "axios";
 
-interface MonthlyProductSale {
+interface ProductSale {
   productName: string;
   sku: string;
   quantity: number;
@@ -10,59 +11,111 @@ interface MonthlyProductSale {
   loss: number;
 }
 
-interface MonthlyReportResponse {
-  month: string;
+interface MonthlyReportData {
+  productSales: ProductSale[];
   totalSales: number;
   totalProfit: number;
   totalLoss: number;
   totalQuantitySold: number;
-  productSales: MonthlyProductSale[];
 }
 
 export default function MonthlyReport() {
-  const [report, setReport] = useState<MonthlyReportResponse | null>(null);
+  const today = new Date();
+  const [selectedMonth, setSelectedMonth] = useState(today.getMonth() + 1); // 1-based
+  const [selectedYear, setSelectedYear] = useState(today.getFullYear());
+  const [data, setData] = useState<MonthlyReportData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const fetchData = (year: number, month: number) => {
+    setLoading(true);
+    axios
+      .get(`http://localhost:8080/api/reports/monthly?year=${year}&month=${month}`)
+      .then((res) => {
+        setData(res.data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Error fetching monthly report:", err);
+        setLoading(false);
+      });
+  };
 
   useEffect(() => {
-    fetch("http://localhost:8080/api/reports/monthly?year=2025&month=8")
-      .then(res => res.json())
-      .then(data => setReport(data));
-  }, []);
+    fetchData(selectedYear, selectedMonth);
+  }, [selectedMonth, selectedYear]);
 
-  if (!report) return <p>Loading...</p>;
+  const monthNames = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
+
+  if (loading) return <p>Loading Monthly Report...</p>;
+  if (!data) return <p>No data available</p>;
 
   return (
-    <div className="p-4 shadow rounded-xl bg-white">
-      <h2 className="text-xl font-semibold mb-4">Monthly Report - {report.month}</h2>
-      <p>Total Sales: {report.totalSales}</p>
-      <p>Total Profit: {report.totalProfit}</p>
-      <p>Total Quantity Sold: {report.totalQuantitySold}</p>
+    <div className="p-4 bg-white rounded-2xl shadow-lg">
+      <div className="flex items-center gap-4 mb-4">
+        <label>
+          📅 Select Month:{" "}
+          <select
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(Number(e.target.value))}
+            className="border rounded px-2 py-1"
+          >
+            {monthNames.map((name, index) => (
+              <option key={index + 1} value={index + 1}>
+                {name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          🗓 Year:{" "}
+          <input
+            type="number"
+            value={selectedYear}
+            onChange={(e) => setSelectedYear(Number(e.target.value))}
+            className="border rounded px-2 py-1 w-24"
+            min={2000}
+            max={2100}
+          />
+        </label>
+      </div>
 
-      <table className="w-full border-collapse mt-4">
+      <h2 className="text-xl font-bold mb-4">
+        📆 Monthly Report ({monthNames[selectedMonth - 1]} {selectedYear})
+      </h2>
+
+      <table className="w-full table-auto border-collapse">
         <thead>
-          <tr className="bg-gray-100">
-            <th className="p-2 text-left">Product</th>
-            <th className="p-2 text-left">SKU</th>
-            <th className="p-2 text-right">Qty</th>
-            <th className="p-2 text-right">Sales</th>
-            <th className="p-2 text-right">Cost</th>
-            <th className="p-2 text-right">Profit</th>
-            <th className="p-2 text-right">Loss</th>
+          <tr className="bg-gray-200">
+            <th className="border px-2 py-1">Product</th>
+            <th className="border px-2 py-1">SKU</th>
+            <th className="border px-2 py-1">Quantity</th>
+            <th className="border px-2 py-1">Sales Total</th>
+            <th className="border px-2 py-1">Cost Total</th>
+            <th className="border px-2 py-1">Profit</th>
+            <th className="border px-2 py-1">Loss</th>
           </tr>
         </thead>
         <tbody>
-          {report.productSales.map((p, i) => (
-            <tr key={i} className="border-t">
-              <td className="p-2">{p.productName}</td>
-              <td className="p-2">{p.sku}</td>
-              <td className="p-2 text-right">{p.quantity}</td>
-              <td className="p-2 text-right">{p.saleTotal.toFixed(2)}</td>
-              <td className="p-2 text-right">{p.costTotal.toFixed(2)}</td>
-              <td className="p-2 text-right text-green-600">{p.profit.toFixed(2)}</td>
-              <td className="p-2 text-right text-red-600">{p.loss.toFixed(2)}</td>
+          {data.productSales.map((item, idx) => (
+            <tr key={idx} className="text-center">
+              <td className="border px-2 py-1">{item.productName}</td>
+              <td className="border px-2 py-1">{item.sku}</td>
+              <td className="border px-2 py-1">{item.quantity}</td>
+              <td className="border px-2 py-1">₹{item.saleTotal.toFixed(2)}</td>
+              <td className="border px-2 py-1">₹{item.costTotal.toFixed(2)}</td>
+              <td className="border px-2 py-1 text-green-600">₹{item.profit.toFixed(2)}</td>
+              <td className="border px-2 py-1 text-red-600">₹{item.loss.toFixed(2)}</td>
             </tr>
           ))}
         </tbody>
       </table>
+
+      <div className="mt-4 font-bold">
+        Total Sales: ₹{data.totalSales.toFixed(2)} | Total Profit: ₹{data.totalProfit.toFixed(2)} | Total Loss: ₹{data.totalLoss.toFixed(2)} | Quantity Sold: {data.totalQuantitySold}
+      </div>
     </div>
   );
 }

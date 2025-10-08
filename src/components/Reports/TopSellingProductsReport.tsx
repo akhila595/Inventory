@@ -1,33 +1,108 @@
-import React from "react";
-import { Crown } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import axios from "axios";
 
-const topProducts = [
-  { name: "Denim Jacket", sales: 320 },
-  { name: "Sneakers", sales: 280 },
-  { name: "T-Shirt", sales: 250 },
-  { name: "Cap", sales: 180 },
-];
+interface TopSellingProduct {
+  productName: string;
+  quantitySold: number;
+}
 
-export default function TopSellingProductsWidget() {
+export default function TopSellingProductsReport() {
+  const today = new Date().toISOString().split("T")[0];
+  const lastMonth = new Date();
+  lastMonth.setMonth(lastMonth.getMonth() - 1);
+  const defaultStart = lastMonth.toISOString().split("T")[0];
+
+  const [products, setProducts] = useState<TopSellingProduct[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [startDate, setStartDate] = useState(defaultStart);
+  const [endDate, setEndDate] = useState(today);
+  const [limit, setLimit] = useState(10);
+
+  const fetchData = () => {
+    setLoading(true);
+    axios
+      .get(`http://localhost:8080/api/reports/top-selling?startDate=${startDate}&endDate=${endDate}&limit=${limit}`)
+      .then((res) => {
+        setProducts(res.data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Error fetching top-selling products:", err);
+        setLoading(false);
+      });
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [startDate, endDate, limit]);
+
   return (
-    <div className="h-full flex flex-col">
-      <div className="flex items-center gap-2 mb-3">
-        <Crown className="w-6 h-6 text-yellow-500" />
-        <h2 className="text-xl font-bold text-gray-800">Top Selling Products</h2>
-      </div>
-      <div className="space-y-3">
-        {topProducts.map((product, index) => (
-          <div
-            key={product.name}
-            className="flex justify-between items-center p-4 rounded-xl shadow-md bg-gradient-to-r from-indigo-100 via-purple-100 to-pink-100 hover:scale-[1.02] transition-transform"
+    <div className="p-4 bg-white rounded-2xl shadow-lg">
+      {/* Filters */}
+      <div className="flex flex-wrap gap-4 mb-4 items-center">
+        <label>
+          📅 Start Date:
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            max={endDate}
+            className="ml-2 border rounded px-2 py-1"
+          />
+        </label>
+
+        <label>
+          🗓 End Date:
+          <input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            min={startDate}
+            max={today}
+            className="ml-2 border rounded px-2 py-1"
+          />
+        </label>
+
+        <label>
+          🔢 Top:
+          <select
+            value={limit}
+            onChange={(e) => setLimit(Number(e.target.value))}
+            className="ml-2 border rounded px-2 py-1"
           >
-            <span className="font-medium text-gray-700">
-              #{index + 1} {product.name}
-            </span>
-            <span className="text-sm font-bold text-indigo-600">{product.sales} sales</span>
-          </div>
-        ))}
+            <option value={5}>Top 5</option>
+            <option value={10}>Top 10</option>
+            <option value={20}>Top 20</option>
+          </select>
+        </label>
       </div>
+
+      <h2 className="text-xl font-bold mb-4">
+        ⭐ Top Selling Products ({startDate} to {endDate})
+      </h2>
+
+      {loading ? (
+        <p>Loading Top Selling Products...</p>
+      ) : products.length === 0 ? (
+        <p>No top selling products found for the selected range.</p>
+      ) : (
+        <table className="w-full table-auto border-collapse text-center">
+          <thead>
+            <tr className="bg-gray-200">
+              <th className="border px-2 py-1">Product Name</th>
+              <th className="border px-2 py-1">Quantity Sold</th>
+            </tr>
+          </thead>
+          <tbody>
+            {products.map((item, idx) => (
+              <tr key={idx}>
+                <td className="border px-2 py-1">{item.productName}</td>
+                <td className="border px-2 py-1">{item.quantitySold}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </div>
   );
 }

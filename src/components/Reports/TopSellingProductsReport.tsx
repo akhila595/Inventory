@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import { getTopSellingProducts } from "@/api/reportApi" // Import the API function
 
 interface TopSellingProduct {
   productName: string;
@@ -20,10 +20,9 @@ export default function TopSellingProductsReport() {
 
   const fetchData = () => {
     setLoading(true);
-    axios
-      .get(`http://localhost:8080/api/reports/top-selling?startDate=${startDate}&endDate=${endDate}&limit=${limit}`)
+    getTopSellingProducts(startDate, endDate, limit) // Use the API helper function
       .then((res) => {
-        setProducts(res.data);
+        setProducts(res);
         setLoading(false);
       })
       .catch((err) => {

@@ -1,99 +1,86 @@
+// src/components/Sidebar.tsx
 import React, { useEffect, useState } from "react";
 
-// Define user type
 interface User {
   name: string;
   role: string;
   email: string;
   phone: string;
+  photo?: string;
 }
 
-// Define section type for navigation
-type Section = "profile" | "settings" | null;
+type Section = "profile" | null;
 
 export default function Sidebar() {
   const [user, setUser] = useState<User | null>(null);
   const [activeSection, setActiveSection] = useState<Section>(null);
 
-  // Default API call (mock)
   useEffect(() => {
-    fetch("/api/user") // Replace with real backend later
-      .then((res) => res.json())
-      .then((data) => setUser(data))
-      .catch(() => {
-        // fallback demo data
-        setUser({
-          name: "Akhila R",
-          role: "Java Developer",
-          email: "akhila@example.com",
-          phone: "+91 9876543210",
-        });
+    const token = localStorage.getItem("authToken");
+    const userData = localStorage.getItem("userData");
+
+    if (!token || !userData) {
+      window.location.href = "/"; // redirect if not logged in
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(userData);
+      setUser({
+        name: parsed.name || "User Name",
+        role: parsed.role || "User Role",
+        email: parsed.email || "demo@example.com",
+        phone: parsed.phone || "+91 9999999999",
+        photo: parsed.photo || "https://cdn-icons-png.flaticon.com/512/149/149071.png", // default avatar
       });
+    } catch {
+      setUser(null);
+    }
   }, []);
 
+  const handleLogout = () => {
+    localStorage.removeItem("authToken");
+    localStorage.removeItem("userData");
+    window.location.href = "/"; // redirect to login
+  };
+
   return (
-    <aside className="w-64 bg-gradient-to-b from-blue-700 via-purple-700 to-pink-700 text-white p-6 shadow-xl h-screen flex flex-col">
-      {/* App Title */}
+    <aside className="w-64 bg-gradient-to-b from-blue-700 via-purple-700 to-pink-700 text-white p-6 shadow-xl h-screen flex flex-col items-center">
       <h1 className="text-2xl font-extrabold mb-8 tracking-wide flex items-center gap-2">
         📊 Dashboard
       </h1>
 
-      {/* User Info */}
-      {user && (
-        <div className="mb-8 p-4 bg-white/10 rounded-xl">
-          <p className="text-lg font-semibold">👋 Hi, {user.name}</p>
-          <p className="text-sm opacity-80">{user.role}</p>
-        </div>
-      )}
-
-      {/* Navigation Menu */}
-      <ul className="space-y-4 flex-1">
+      <ul className="space-y-4 mb-8 w-full text-center">
         <li
-          className={`cursor-pointer hover:text-purple-300 ${
-            activeSection === "profile" ? "underline" : ""
+          className={`cursor-pointer hover:text-pink-300 ${
+            activeSection === "profile" ? "underline font-semibold" : ""
           }`}
           onClick={() => setActiveSection("profile")}
         >
           👤 Profile
         </li>
-        <li
-          className={`cursor-pointer hover:text-pink-300 ${
-            activeSection === "settings" ? "underline" : ""
-          }`}
-          onClick={() => setActiveSection("settings")}
-        >
-          ⚙️ Settings
-        </li>
       </ul>
 
-      {/* Content Section */}
-      <div className="bg-white/10 text-sm p-4 mt-4 rounded-lg">
-        {activeSection === "profile" && (
-          <div>
-            <h2 className="font-semibold mb-2">👤 Edit Profile</h2>
-            <ul className="space-y-1 list-disc list-inside">
-              <li>Update Phone: {user?.phone}</li>
-              <li>Update Email: {user?.email}</li>
-              <li>Change Password</li>
-              <li>Logout</li>
-            </ul>
-          </div>
-        )}
+      {/* Profile Section */}
+      {activeSection === "profile" && user && (
+        <div className="flex flex-col items-center bg-white/10 rounded-2xl p-6 w-full text-center">
+          <img
+            src={user.photo}
+            alt="Profile"
+            className="w-24 h-24 rounded-full mb-4 border-4 border-white/30 shadow-md"
+          />
+          <h2 className="text-xl font-semibold">{user.name}</h2>
+          <p className="text-sm opacity-80 mb-4">{user.role}</p>
+          <button
+            onClick={handleLogout}
+            className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg shadow-md transition-all"
+          >
+            Logout
+          </button>
+        </div>
+      )}
 
-        {activeSection === "settings" && (
-          <div>
-            <h2 className="font-semibold mb-2">⚙️ Account Settings</h2>
-            <ul className="space-y-1 list-disc list-inside">
-              <li>Email Alerts: ON/OFF</li>
-              <li>Low Stock Alerts: ON/OFF</li>
-              <li>Sales Reports: ON/OFF</li>
-            </ul>
-          </div>
-        )}
-      </div>
-
-      {/* Footer */}
-      <div className="mt-auto text-sm opacity-70">
+      <div className="mt-auto text-sm opacity-70 text-center">
         © {new Date().getFullYear()} Dashboard
       </div>
     </aside>

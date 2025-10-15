@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import { getSupplierReport } from "@/api/reportApi"; // Import the API function
 
 interface SupplierData {
   supplierName: string;
@@ -24,10 +24,9 @@ export default function SupplierReport() {
 
   const fetchData = () => {
     setLoading(true);
-    axios
-      .get(`http://localhost:8080/api/reports/supplier/2?startDate=${startDate}&endDate=${endDate}`)
+    getSupplierReport(2, startDate, endDate) // Use the imported API function
       .then((res) => {
-        setData(res.data);
+        setData(res);
         setLoading(false);
       })
       .catch((err) => {

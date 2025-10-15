@@ -1,40 +1,43 @@
 import React, { useEffect, useState } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { DollarSign } from "lucide-react";
-
-interface ProductSale {
-  profit: number;
-  loss: number;
-}
+import { motion } from "framer-motion";
+import { getMonthlyReport } from "@/api/reportApi";
 
 export default function ProfitLossWidget() {
-  const [data, setData] = useState<{ name: string; value: number }[]>([
+  const [data, setData] = useState([
     { name: "Profit", value: 0 },
     { name: "Loss", value: 0 },
   ]);
 
-  const COLORS = ["#10b981", "#ef4444"]; // Green for profit, Red for loss
+  const COLORS = ["#10b981", "#ef4444"]; // green & red
 
   useEffect(() => {
-    fetch("http://localhost:8080/api/reports/monthly?year=2025&month=8")
-      .then((res) => res.json())
-      .then((resData) => {
-        const totalProfit = resData.totalProfit ?? 0;
-        const totalLoss = resData.totalLoss ?? 0;
+    getMonthlyReport(2025, 8)
+      .then((resData) =>
         setData([
-          { name: "Profit", value: totalProfit },
-          { name: "Loss", value: totalLoss },
-        ]);
-      })
-      .catch((err) => console.error("Error fetching profit/loss data:", err));
+          { name: "Profit", value: resData.totalProfit ?? 0 },
+          { name: "Loss", value: resData.totalLoss ?? 0 },
+        ])
+      )
+      .catch(console.error);
   }, []);
 
   return (
-    <div className="h-full flex flex-col items-center justify-center">
-      <div className="flex items-center gap-2 mb-2">
-        <DollarSign className="w-6 h-6 text-indigo-600" />
-        <h2 className="text-lg font-bold text-gray-800">Profit vs Loss</h2>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="h-full flex flex-col items-center justify-center bg-white/40 backdrop-blur-md rounded-2xl shadow-lg border border-white/20 p-6"
+    >
+      {/* Header */}
+      <div className="flex items-center gap-3 mb-3">
+        <div className="p-2 bg-indigo-100 rounded-full shadow">
+          <DollarSign className="w-5 h-5 text-indigo-700" />
+        </div>
+        <h2 className="text-xl font-bold text-gray-800">Profit vs Loss</h2>
       </div>
+
+      {/* Pie Chart */}
       <ResponsiveContainer width="100%" height={250}>
         <PieChart>
           <Pie
@@ -42,16 +45,24 @@ export default function ProfitLossWidget() {
             dataKey="value"
             cx="50%"
             cy="50%"
-            outerRadius={80}
-            label={({ name, value }) => `${name}: ${value}`}
+            outerRadius={85}
+            label={({ name, value }) => `${name}: ₹${value}`}
+            labelLine={false}
           >
             {data.map((entry, index) => (
-              <Cell key={entry.name} fill={COLORS[index]} />
+              <Cell key={index} fill={COLORS[index]} />
             ))}
           </Pie>
-          <Tooltip formatter={(value: number) => `₹${value}`} />
+          <Tooltip
+            formatter={(value: number) => `₹${value}`}
+            contentStyle={{
+              backgroundColor: "rgba(255,255,255,0.8)",
+              borderRadius: "10px",
+              boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+            }}
+          />
         </PieChart>
       </ResponsiveContainer>
-    </div>
+    </motion.div>
   );
 }

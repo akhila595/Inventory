@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import { getMonthlyReport } from "@/api/reportApi"; // Import the API function
 
 interface ProductSale {
   productName: string;
@@ -28,10 +28,9 @@ export default function MonthlyReport() {
 
   const fetchData = (year: number, month: number) => {
     setLoading(true);
-    axios
-      .get(`http://localhost:8080/api/reports/monthly?year=${year}&month=${month}`)
+    getMonthlyReport(year, month) // Use the imported API function
       .then((res) => {
-        setData(res.data);
+        setData(res);
         setLoading(false);
       })
       .catch((err) => {

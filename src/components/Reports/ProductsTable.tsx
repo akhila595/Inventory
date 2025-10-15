@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import { getAllProducts  } from "@/api/productApi"; // Import the API function
 
 interface Product {
   id: number;
@@ -16,10 +16,9 @@ export default function ProductsTable() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    axios
-      .get("http://localhost:8080/api/products")
+    getAllProducts() // Use the imported API function
       .then((res) => {
-        setProducts(res.data);
+        setProducts(res);
         setLoading(false);
       })
       .catch((err) => {

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { getDailyReport } from "@/api/reportApi";
 
 interface ProductSale {
   productName: string;
@@ -20,24 +21,17 @@ interface DailyReportData {
 }
 
 const DailyReport: React.FC = () => {
-  const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
-
-  const [selectedDate, setSelectedDate] = useState<string>(today);
+  const today = new Date().toISOString().split("T")[0];
+  const [selectedDate, setSelectedDate] = useState(today);
   const [reportData, setReportData] = useState<DailyReportData | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setLoading(true);
-    fetch(`http://localhost:8080/api/reports/daily?date=${selectedDate}`)
-      .then((res) => res.json())
-      .then((data) => {
-        setReportData(data);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error("Error fetching daily report:", err);
-        setLoading(false);
-      });
+    getDailyReport(selectedDate)
+      .then((res) => setReportData(res.data))
+      .catch((err) => console.error("Error fetching daily report:", err))
+      .finally(() => setLoading(false));
   }, [selectedDate]);
 
   if (loading) return <div>Loading...</div>;
@@ -45,7 +39,6 @@ const DailyReport: React.FC = () => {
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-md mt-10">
-      {/* Date Picker */}
       <div className="mb-4">
         <label className="font-medium mr-2">📅 Select Date:</label>
         <input
@@ -57,12 +50,10 @@ const DailyReport: React.FC = () => {
         />
       </div>
 
-      {/* Heading */}
       <h2 className="text-xl font-bold mb-4">
         🗓 Daily Sales Report ({reportData.date})
       </h2>
 
-      {/* Summary */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div className="bg-blue-100 p-4 rounded">
           Total Sales: ₹{reportData.totalSales.toFixed(2)}
@@ -78,7 +69,6 @@ const DailyReport: React.FC = () => {
         </div>
       </div>
 
-      {/* Table */}
       <div className="overflow-x-auto">
         <table className="min-w-full table-auto border border-gray-300">
           <thead className="bg-gray-100">

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import api from "@/api/axios"; // ✅ your centralized axios instance
+import { toast } from "react-hot-toast";
 
 interface Category {
   categoryId: number;
@@ -11,28 +12,48 @@ export default function CategoryReport() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    axios
-      .get("http://localhost:8080/api/categories")
-      .then((res) => {
+    const fetchCategories = async () => {
+      try {
+        const res = await api.get("/categories");
         setCategories(res.data);
+      } catch (err: any) {
+        console.error("Error fetching categories:", err);
+        toast.error("Failed to load categories");
+      } finally {
         setLoading(false);
-      })
-      .catch((err) => {
-        console.error(err);
-        setLoading(false);
-      });
+      }
+    };
+
+    fetchCategories();
   }, []);
 
-  if (loading) return <p>Loading Category Report...</p>;
+  if (loading) {
+    return (
+      <div className="p-4 bg-white rounded-2xl shadow-md text-center">
+        <p className="text-gray-500">Loading Category Report...</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="p-4 bg-white rounded-2xl shadow-lg">
-      <h2 className="text-xl font-bold mb-4">🏷️ Category Report</h2>
-      <ul className="list-disc pl-6">
-        {categories.map((cat) => (
-          <li key={cat.categoryId}>{cat.categoryName}</li>
-        ))}
-      </ul>
+    <div className="p-6 bg-white rounded-2xl shadow-lg">
+      <h2 className="text-2xl font-semibold mb-4 flex items-center">
+        🏷️ <span className="ml-2">Category Report</span>
+      </h2>
+
+      {categories.length > 0 ? (
+        <ul className="list-disc pl-6 space-y-2">
+          {categories.map((cat) => (
+            <li key={cat.categoryId} className="text-gray-700">
+              {cat.categoryName}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-gray-500 text-sm text-center mt-2">
+          No categories found.
+        </p>
+      )}
     </div>
   );
 }

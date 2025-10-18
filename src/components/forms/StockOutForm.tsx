@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { toast } from "react-hot-toast";
-import { stockOut } from "@/api/stockApi"; // ✅ Use centralized API function
+import { stockOut } from "@/api/stockApi";
 
 interface StockOutData {
   sku: string;
@@ -12,53 +12,68 @@ interface StockOutData {
 }
 
 const StockOutForm: React.FC = () => {
-  const [stockOutData, setStockOutData] = useState<StockOutData>({
+  const [data, setData] = useState<StockOutData>({
     sku: "",
     quantity: "",
-    saleDate: "",
+    saleDate: new Date().toISOString().slice(0, 16),
     remarks: "",
     sellingPrice: "",
     finalPrice: "",
   });
 
+  const [message, setMessage] = useState<string>(""); // ✅ to display backend message
+  const [isError, setIsError] = useState<boolean>(false); // ✅ to style message color
+
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
-    setStockOutData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const payload = {
-      sku: stockOutData.sku.trim(),
-      quantity: Number(stockOutData.quantity),
-      saleDate: stockOutData.saleDate,
-      remarks: stockOutData.remarks.trim(),
-      sellingPrice: Number(stockOutData.sellingPrice),
-      finalPrice: Number(stockOutData.finalPrice),
+      sku: data.sku.trim(),
+      quantity: Number(data.quantity),
+      saleDate: data.saleDate,
+      remarks: data.remarks.trim(),
+      sellingPrice: Number(data.sellingPrice),
+      finalPrice: Number(data.finalPrice),
     };
 
     try {
-      await stockOut(payload); // ✅ Use central API helper
-      toast.success("Stock successfully updated!");
-      setStockOutData({
-        sku: "",
-        quantity: "",
-        saleDate: "",
-        remarks: "",
-        sellingPrice: "",
-        finalPrice: "",
-      });
+      const response = await stockOut(payload);
+
+      // ✅ Assume backend returns message as plain string
+      const messageText =
+        typeof response === "string"
+          ? response
+          : response?.message || "Stock out processed.";
+
+      setMessage(messageText);
+      setIsError(messageText.startsWith("❌")); // color based on backend symbol
+
+      toast.success(messageText);
+
+      // ✅ Reset form only if successful
+      if (!messageText.startsWith("❌")) {
+        setData({
+          sku: "",
+          quantity: "",
+          saleDate: new Date().toISOString().slice(0, 16),
+          remarks: "",
+          sellingPrice: "",
+          finalPrice: "",
+        });
+      }
     } catch (err: any) {
-      console.error("Error submitting stock out form:", err);
-      toast.error(
-        err.response?.data?.message || "Failed to update stock. Please try again."
-      );
+      console.error(err);
+      const errorMsg = err?.response?.data || "Failed to process stock out.";
+      setMessage(errorMsg);
+      setIsError(true);
+      toast.error(errorMsg);
     }
   };
 
@@ -68,90 +83,113 @@ const StockOutForm: React.FC = () => {
         Stock Out Form
       </h2>
 
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <form
+        onSubmit={handleSubmit}
+        className="grid grid-cols-1 md:grid-cols-2 gap-6"
+      >
+        {/* SKU */}
         <div>
           <label className="block font-medium mb-1">SKU</label>
           <input
             type="text"
             name="sku"
-            value={stockOutData.sku}
+            value={data.sku}
             onChange={handleChange}
             required
-            className="w-full border rounded-md px-4 py-2 bg-green-50 focus:bg-green-100 focus:ring-2 focus:ring-green-400 outline-none"
+            className="w-full border rounded-md px-4 py-2 bg-green-50 focus:bg-green-100 focus:outline-none"
           />
         </div>
 
+        {/* Quantity */}
         <div>
           <label className="block font-medium mb-1">Quantity</label>
           <input
             type="number"
             name="quantity"
-            value={stockOutData.quantity}
+            value={data.quantity}
             onChange={handleChange}
             required
             min="1"
-            className="w-full border rounded-md px-4 py-2 bg-green-50 focus:bg-green-100 focus:ring-2 focus:ring-green-400 outline-none"
+            className="w-full border rounded-md px-4 py-2 bg-green-50 focus:bg-green-100 focus:outline-none"
           />
         </div>
 
+        {/* Sale Date */}
         <div>
           <label className="block font-medium mb-1">Sale Date</label>
           <input
             type="datetime-local"
             name="saleDate"
-            value={stockOutData.saleDate}
+            value={data.saleDate}
             onChange={handleChange}
             required
-            className="w-full border rounded-md px-4 py-2 bg-green-50 focus:bg-green-100 focus:ring-2 focus:ring-green-400 outline-none"
+            className="w-full border rounded-md px-4 py-2 bg-green-50 focus:bg-green-100 focus:outline-none"
           />
         </div>
 
+        {/* Selling Price */}
         <div>
           <label className="block font-medium mb-1">Selling Price</label>
           <input
             type="number"
             name="sellingPrice"
-            value={stockOutData.sellingPrice}
+            value={data.sellingPrice}
             onChange={handleChange}
             required
-            min="1"
-            className="w-full border rounded-md px-4 py-2 bg-green-50 focus:bg-green-100 focus:ring-2 focus:ring-green-400 outline-none"
+            min="0"
+            step="0.01"
+            className="w-full border rounded-md px-4 py-2 bg-green-50 focus:bg-green-100 focus:outline-none"
           />
         </div>
 
+        {/* Final Price */}
         <div>
           <label className="block font-medium mb-1">Final Price</label>
           <input
             type="number"
             name="finalPrice"
-            value={stockOutData.finalPrice}
+            value={data.finalPrice}
             onChange={handleChange}
             required
-            min="1"
-            className="w-full border rounded-md px-4 py-2 bg-green-50 focus:bg-green-100 focus:ring-2 focus:ring-green-400 outline-none"
+            min="0"
+            step="0.01"
+            className="w-full border rounded-md px-4 py-2 bg-green-50 focus:bg-green-100 focus:outline-none"
           />
         </div>
 
+        {/* Remarks */}
         <div className="md:col-span-2">
           <label className="block font-medium mb-1">Remarks</label>
           <textarea
             name="remarks"
-            value={stockOutData.remarks}
+            value={data.remarks}
             onChange={handleChange}
             rows={3}
-            className="w-full border rounded-md px-4 py-2 bg-green-50 focus:bg-green-100 focus:ring-2 focus:ring-green-400 outline-none"
+            className="w-full border rounded-md px-4 py-2 bg-green-50 focus:bg-green-100 focus:outline-none"
           />
         </div>
 
+        {/* Submit Button */}
         <div className="col-span-2 text-center mt-6">
           <button
             type="submit"
-            className="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 transition"
+            className="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 transition-all"
           >
             Process Stock Out
           </button>
         </div>
       </form>
+
+      {/* ✅ Message Display Section */}
+      {message && (
+        <div
+          className={`mt-6 text-center text-lg font-medium ${
+            isError ? "text-red-600" : "text-green-600"
+          }`}
+        >
+          {message}
+        </div>
+      )}
     </div>
   );
 };

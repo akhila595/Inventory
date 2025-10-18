@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { getSupplierReport } from "@/api/reportApi"; // Import the API function
+import { getAllSuppliersPurchaseReport } from "@/api/reportApi"; // Import the API function
 
 interface SupplierData {
   supplierName: string;
@@ -24,7 +24,7 @@ export default function SupplierReport() {
 
   const fetchData = () => {
     setLoading(true);
-    getSupplierReport(2, startDate, endDate) // Use the imported API function
+    getAllSuppliersPurchaseReport(startDate, endDate) // Use the imported API function
       .then((res) => {
         setData(res);
         setLoading(false);

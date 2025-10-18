@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import api from "@/api/axios"; // ✅ your centralized axios instance
+import { getCategories } from "@/api/masterDataApi"; // ✅ use helper instead of raw axios
 import { toast } from "react-hot-toast";
 
 interface Category {
@@ -14,8 +14,8 @@ export default function CategoryReport() {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const res = await api.get("/categories");
-        setCategories(res.data);
+        const data = await getCategories(); // ✅ use the helper function
+        setCategories(data);
       } catch (err: any) {
         console.error("Error fetching categories:", err);
         toast.error("Failed to load categories");

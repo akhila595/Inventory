@@ -1,14 +1,22 @@
 import React, { useState, useEffect } from "react";
-import { getCategories, getBrands, getClothTypes, getColors, getSizes } from "@/api/masterDataApi";
-import api from "@/api/axios";
+import {
+  getCategories,
+  getBrands,
+  getClothTypes,
+  getColors,
+  getSizes,
+} from "@/api/masterDataApi";
+import { stockIn } from "@/api/stockApi";
+import { toast } from "react-hot-toast";
 
 interface Option {
-  id: number;
+  id: number | string;
   name: string;
 }
 
 const StockInForm: React.FC = () => {
   const [showForm, setShowForm] = useState(true);
+
   const [formData, setFormData] = useState({
     categoryId: "",
     brandId: "",
@@ -35,8 +43,10 @@ const StockInForm: React.FC = () => {
   const [clothTypes, setClothTypes] = useState<Option[]>([]);
   const [colors, setColors] = useState<Option[]>([]);
   const [sizes, setSizes] = useState<Option[]>([]);
+  const [message, setMessage] = useState<string>("");
+  const [isError, setIsError] = useState<boolean>(false);
 
-  // Fetch dropdown options using the imported API functions
+  // ✅ Fetch dropdown options
   useEffect(() => {
     const fetchOptions = async () => {
       try {
@@ -48,111 +58,110 @@ const StockInForm: React.FC = () => {
           getSizes(),
         ]);
 
-        setCategories(catRes);
-        setBrands(brandRes);
-        setClothTypes(clothRes);
-        setColors(colorRes);
-        setSizes(sizeRes);
+        setCategories(
+          Array.isArray(catRes)
+            ? catRes.map((c: any) => ({ id: c.categoryId, name: c.categoryName }))
+            : []
+        );
+       setBrands(
+         Array.isArray(brandRes)
+             ? brandRes.map((b: any) => ({ id: b.id, name: b.brand }))
+             : []
+          );
+
+        setClothTypes(
+          Array.isArray(clothRes)
+            ? clothRes.map((c: any) => ({ id: c.id, name: c.clothType }))
+            : []
+        );
+        setColors(
+          Array.isArray(colorRes)
+            ? colorRes.map((c: any) => ({ id: c.id, name: c.color }))
+            : []
+        );
+        setSizes(
+          Array.isArray(sizeRes)
+            ? sizeRes.map((s: any) => ({ id: s.id, name: s.size }))
+            : []
+        );
       } catch (err) {
-        console.error("Failed to fetch dropdown data:", err);
+        console.error("❌ Failed to fetch dropdown data:", err);
+        toast.error("Failed to load dropdown data");
       }
     };
-
     fetchOptions();
   }, []);
 
-  // Auto-generate Product Name & Pattern
+  // ✅ Auto-generate productName & pattern
   useEffect(() => {
-    const brand = brands.find((b) => b.id.toString() === formData.brandId)?.name ?? "";
-    const cloth = clothTypes.find((c) => c.id.toString() === formData.clothTypeId)?.name ?? "";
-    const color = colors.find((col) => col.id.toString() === formData.colorId)?.name ?? "";
-    const designCode = formData.designCode ?? "";
-
-    const autoProductName = [
-      designCode,
-      brand ? ` - ${brand}` : "",
-      cloth ? ` - ${cloth}` : "",
-    ].join("").trim();
-
-    const autoPattern = [color, cloth ? ` ${cloth}` : ""].join("").trim();
+    const brand = brands.find((b) => String(b.id) === formData.brandId)?.name || "";
+    const cloth = clothTypes.find((c) => String(c.id) === formData.clothTypeId)?.name || "";
+    const color = colors.find((col) => String(col.id) === formData.colorId)?.name || "";
+    const designCode = formData.designCode || "";
 
     setFormData((prev) => ({
       ...prev,
-      productName: autoProductName,
-      pattern: autoPattern,
+      productName: [designCode, brand && ` - ${brand}`, cloth && ` - ${cloth}`]
+        .filter(Boolean)
+        .join(" ")
+        .trim(),
+      pattern: [color, cloth && ` ${cloth}`].filter(Boolean).join("").trim(),
     }));
   }, [formData.brandId, formData.clothTypeId, formData.colorId, formData.designCode, brands, clothTypes, colors]);
 
-  // Handle input change
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+  ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Validate & set image
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    if (!file) return;
 
-    if (file) {
-      const validImageTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
-      const maxSizeInBytes = 2 * 1024 * 1024; // 2MB
+    const validTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+    if (!validTypes.includes(file.type)) return toast.error("Invalid image type.");
+    if (file.size > 2 * 1024 * 1024) return toast.error("Image must be < 2MB.");
 
-      if (!validImageTypes.includes(file.type)) {
-        alert("Invalid file type. Please upload a JPEG, PNG, GIF, or WEBP image.");
-        return;
-      }
-
-      if (file.size > maxSizeInBytes) {
-        alert("File size exceeds 2MB. Please upload a smaller image.");
-        return;
-      }
-
-      setImageFile(file);
-    }
+    setImageFile(file);
   };
 
-  // Submit Form
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setMessage("");
+    setIsError(false);
 
-    const formPayload = new FormData();
-
-    if (imageFile) {
-      formPayload.append("image", imageFile);
-    }
+    const payload = new FormData();
+    if (imageFile) payload.append("image", imageFile);
 
     const stockData = {
-      categoryId: parseInt(formData.categoryId),
-      brandId: parseInt(formData.brandId),
-      clothTypeId: parseInt(formData.clothTypeId),
-      colorId: parseInt(formData.colorId),
-      sizeId: parseInt(formData.sizeId),
-      designCode: formData.designCode,
-      pattern: formData.pattern,
-      sku: formData.sku,
-      quantity: parseInt(formData.quantity),
-      basePrice: parseFloat(formData.basePrice),
-      taxPerUnit: parseFloat(formData.taxPerUnit),
-      transportPerUnit: parseFloat(formData.transportPerUnit),
-      sellingPrice: parseFloat(formData.sellingPrice),
-      purchaseDate: formData.purchaseDate,
-      supplierName: formData.supplierName,
-      remarks: formData.remarks,
-      productName: formData.productName,
+      ...formData,
+      categoryId: Number(formData.categoryId),
+      brandId: Number(formData.brandId),
+      clothTypeId: Number(formData.clothTypeId),
+      colorId: Number(formData.colorId),
+      sizeId: Number(formData.sizeId),
+      quantity: Number(formData.quantity),
+      basePrice: Number(formData.basePrice),
+      taxPerUnit: Number(formData.taxPerUnit),
+      transportPerUnit: Number(formData.transportPerUnit),
+      sellingPrice: Number(formData.sellingPrice),
     };
 
-    formPayload.append("data", new Blob([JSON.stringify(stockData)], { type: "application/json" }));
+    payload.append("data", new Blob([JSON.stringify(stockData)], { type: "application/json" }));
 
     try {
-      const response = await api.post("/stock-in", formPayload, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      const response = await stockIn(payload);
+      const messageText =
+        typeof response === "string" ? response : response?.message || "✅ Stock added successfully!";
 
-      if (response.status === 200 || response.status === 201) {
-        alert("✅ Stock successfully added!");
+      setMessage(messageText);
+      setIsError(messageText.startsWith("❌"));
+
+      messageText.startsWith("❌") ? toast.error(messageText) : toast.success(messageText);
+
+      if (!messageText.startsWith("❌")) {
         setFormData({
           categoryId: "",
           brandId: "",
@@ -173,15 +182,21 @@ const StockInForm: React.FC = () => {
           productName: "",
         });
         setImageFile(null);
-        setShowForm(false);
       }
-    } catch (err) {
-      console.error("❌ Error submitting form:", err);
-      alert("Failed to add stock. Please check console for details.");
+    } catch (err: any) {
+      console.error("❌ Stock In API failed:", err);
+      const errorMsg = err?.response?.data || "Failed to add stock.";
+      setMessage(errorMsg);
+      setIsError(true);
+      toast.error(errorMsg);
     }
   };
 
-  const renderDropdown = (label: string, name: keyof typeof formData, options: Option[]) => (
+  const renderDropdown = (
+    label: string,
+    name: keyof typeof formData,
+    options: Option[]
+  ) => (
     <div>
       <label className="block font-medium mb-1">{label}</label>
       <select
@@ -192,27 +207,17 @@ const StockInForm: React.FC = () => {
         className="w-full border rounded-md px-4 py-2 bg-violet-100 focus:bg-violet-200"
       >
         <option value="">Select {label}</option>
-        {options.map((option) => (
-          <option key={option.id} value={option.id.toString()}>
-            {option.name}
-          </option>
-        ))}
+        {Array.isArray(options) &&
+          options.map((o) =>
+            o?.id != null ? (
+              <option key={String(o.id)} value={String(o.id)}>
+                {o.name}
+              </option>
+            ) : null
+          )}
       </select>
     </div>
   );
-
-  if (!showForm) {
-    return (
-      <div className="text-center mt-8">
-        <button
-          className="bg-green-600 text-white px-6 py-3 rounded-md hover:bg-green-700"
-          onClick={() => setShowForm(true)}
-        >
-          + Add Stock
-        </button>
-      </div>
-    );
-  }
 
   return (
     <div className="relative max-w-4xl mx-auto bg-white p-8 rounded-lg shadow-md mt-8 max-h-screen overflow-y-auto">
@@ -233,90 +238,29 @@ const StockInForm: React.FC = () => {
         {renderDropdown("Color", "colorId", colors)}
         {renderDropdown("Size", "sizeId", sizes)}
 
-        {/* Input Fields */}
-        <div>
-          <label className="block font-medium mb-1">Design Code</label>
-          <input
-            type="text"
-            name="designCode"
-            value={formData.designCode}
-            onChange={handleChange}
-            required
-            className="w-full border rounded-md px-4 py-2 bg-green-50 focus:bg-green-100"
-          />
-        </div>
-
-        <div>
-          <label className="block font-medium mb-1">SKU</label>
-          <input
-            type="text"
-            name="sku"
-            value={formData.sku}
-            onChange={handleChange}
-            required
-            className="w-full border rounded-md px-4 py-2 bg-green-50 focus:bg-green-100"
-          />
-        </div>
-
-        <div>
-          <label className="block font-medium mb-1">Quantity</label>
-          <input
-            type="number"
-            name="quantity"
-            value={formData.quantity}
-            onChange={handleChange}
-            required
-            className="w-full border rounded-md px-4 py-2 bg-green-50 focus:bg-green-100"
-          />
-        </div>
-
-        <div>
-          <label className="block font-medium mb-1">Base Price</label>
-          <input
-            type="number"
-            name="basePrice"
-            value={formData.basePrice}
-            onChange={handleChange}
-            required
-            className="w-full border rounded-md px-4 py-2 bg-green-50 focus:bg-green-100"
-          />
-        </div>
-
-        <div>
-          <label className="block font-medium mb-1">Selling Price</label>
-          <input
-            type="number"
-            name="sellingPrice"
-            value={formData.sellingPrice}
-            onChange={handleChange}
-            required
-            className="w-full border rounded-md px-4 py-2 bg-green-50 focus:bg-green-100"
-          />
-        </div>
-
-        <div>
-          <label className="block font-medium mb-1">Purchase Date</label>
-          <input
-            type="date"
-            name="purchaseDate"
-            value={formData.purchaseDate}
-            onChange={handleChange}
-            required
-            className="w-full border rounded-md px-4 py-2 bg-green-50 focus:bg-green-100"
-          />
-        </div>
-
-        <div>
-          <label className="block font-medium mb-1">Supplier Name</label>
-          <input
-            type="text"
-            name="supplierName"
-            value={formData.supplierName}
-            onChange={handleChange}
-            required
-            className="w-full border rounded-md px-4 py-2 bg-green-50 focus:bg-green-100"
-          />
-        </div>
+        {[
+          { label: "Design Code", name: "designCode" },
+          { label: "SKU", name: "sku" },
+          { label: "Quantity", name: "quantity", type: "number" },
+          { label: "Base Price", name: "basePrice", type: "number" },
+          { label: "Tax Per Unit", name: "taxPerUnit", type: "number" },
+          { label: "Transport Per Unit", name: "transportPerUnit", type: "number" },
+          { label: "Selling Price", name: "sellingPrice", type: "number" },
+          { label: "Purchase Date", name: "purchaseDate", type: "date" },
+          { label: "Supplier Name", name: "supplierName" },
+        ].map((f) => (
+          <div key={f.name}>
+            <label className="block font-medium mb-1">{f.label}</label>
+            <input
+              type={f.type || "text"}
+              name={f.name}
+              value={(formData as any)[f.name]}
+              onChange={handleChange}
+              required
+              className="w-full border rounded-md px-4 py-2 bg-green-50 focus:bg-green-100"
+            />
+          </div>
+        ))}
 
         <div>
           <label className="block font-medium mb-1">Remarks</label>
@@ -325,7 +269,7 @@ const StockInForm: React.FC = () => {
             value={formData.remarks}
             onChange={handleChange}
             className="w-full border rounded-md px-4 py-2 bg-green-50 focus:bg-green-100"
-          ></textarea>
+          />
         </div>
 
         <div>
@@ -338,7 +282,7 @@ const StockInForm: React.FC = () => {
           />
         </div>
 
-        <div className="text-center mt-6">
+        <div className="text-center mt-6 md:col-span-2">
           <button
             type="submit"
             className="bg-blue-500 text-white px-6 py-3 rounded-md hover:bg-blue-600"
@@ -347,6 +291,16 @@ const StockInForm: React.FC = () => {
           </button>
         </div>
       </form>
+
+      {message && (
+        <div
+          className={`mt-6 text-center text-lg font-semibold ${
+            isError ? "text-red-600" : "text-green-600"
+          }`}
+        >
+          {message}
+        </div>
+      )}
     </div>
   );
 };

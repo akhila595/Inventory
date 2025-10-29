@@ -1,4 +1,3 @@
-// src/pages/LoginPage.tsx
 import { useState } from "react";
 import { loginUser } from "@/api/authApi";
 import Register from "./Register";
@@ -26,16 +25,16 @@ export default function LoginPage({ onLogin }: Props) {
 
     try {
       const res = await loginUser({ email, password });
-      const { token, name, role } = res?.data;
+      const { token, name, role, email: userEmail } = res?.data;
 
       if (!token) {
         setError("Login successful but no token received.");
         return;
       }
 
-      // Save token and user info
+      // Save token and user info, including email
       localStorage.setItem("authToken", token);
-      localStorage.setItem("userData", JSON.stringify({ name, role }));
+      localStorage.setItem("userData", JSON.stringify({ name, role, email: userEmail }));
 
       onLogin?.();
       navigate("/app"); // Redirect after login
@@ -61,7 +60,11 @@ export default function LoginPage({ onLogin }: Props) {
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
 
       <div className="absolute top-6 left-6 flex items-center space-x-3 z-20">
-        <img src="/images/logo.png" alt="Logo" className="h-12 w-12 object-contain rounded-full shadow-lg" />
+        <img
+          src="/images/logo.png"
+          alt="Logo"
+          className="h-12 w-12 object-contain rounded-full shadow-lg"
+        />
         <span className="text-white text-2xl font-extrabold drop-shadow-lg">MyProduct</span>
       </div>
 
@@ -134,10 +137,16 @@ export default function LoginPage({ onLogin }: Props) {
         </form>
 
         <div className="flex justify-between items-center mt-6 text-sm text-gray-300">
-          <button onClick={() => setView("register")} className="hover:text-blue-300 font-medium transition">
+          <button
+            onClick={() => setView("register")}
+            className="hover:text-blue-300 font-medium transition"
+          >
             Create Account
           </button>
-          <button onClick={() => setView("forgot")} className="hover:text-blue-300 font-medium transition">
+          <button
+            onClick={() => setView("forgot")}
+            className="hover:text-blue-300 font-medium transition"
+          >
             Forgot Password?
           </button>
         </div>

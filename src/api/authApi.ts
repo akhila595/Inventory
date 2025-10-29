@@ -11,9 +11,10 @@ export const loginUser = (payload: LoginPayload) => {
 };
 
 // ✅ Register API (optional)
-export const registerUser = (payload: { email: string; password: string }) => {
+export const registerUser = (payload: { name: string; email: string; password: string; role: "USER" | "ADMIN" }) => {
   return api.post("/api/auth/register", payload);
 };
+
 
 // ✅ Forgot password API (optional)
 export const forgotPassword = (payload: { email: string }) => {

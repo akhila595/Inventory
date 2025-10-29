@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { User, LogOut, LayoutDashboard, X } from "lucide-react";
+import { debug } from "console";
 
 interface UserData {
   name: string;

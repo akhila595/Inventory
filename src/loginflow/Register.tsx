@@ -1,4 +1,3 @@
-// src/pages/Register.tsx
 import React, { useState } from "react";
 import { registerUser } from "@/api/authApi";
 import { motion } from "framer-motion";
@@ -7,7 +6,7 @@ import { useNavigate } from "react-router-dom";
 export default function Register({ onBack }: { onBack: () => void }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState("USER");
+  const [role, setRole] = useState<"USER" | "ADMIN">("USER"); // Corrected role type
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -138,7 +137,7 @@ export default function Register({ onBack }: { onBack: () => void }) {
             <select
               className="w-full p-3 rounded-lg border border-gray-300 bg-white/30 text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-400 backdrop-blur-sm transition"
               value={role}
-              onChange={(e) => setRole(e.target.value)}
+              onChange={(e) => setRole(e.target.value as "USER" | "ADMIN")} // Type assertion
             >
               <option value="USER">User</option>
               <option value="ADMIN">Admin</option>
